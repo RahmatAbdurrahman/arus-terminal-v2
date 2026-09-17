@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { getWatchlist, toggleWatch } from "@/lib/watchlist";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 
@@ -85,29 +86,40 @@ export default function WatchlistPage() {
           </div>
         ) : (
           <div className="drill-list">
-            {rows.map((r) => (
-              <div key={r.ticker} className="drill-row" style={{ gridTemplateColumns: "70px 1fr 60px 90px" }}>
-                <Link href={`/saham/${r.ticker}`} className="t">
-                  {r.ticker}
-                </Link>
-                <span>{r.name}</span>
-                <span className="s">{r.smfi}</span>
-                <button
-                  onClick={() => remove(r.ticker)}
-                  style={{
-                    background: "none",
-                    border: "1px solid var(--border)",
-                    borderRadius: 5,
-                    padding: "4px 9px",
-                    fontSize: 11,
-                    color: "var(--text-faint)",
-                    cursor: "pointer",
-                  }}
+            <AnimatePresence initial={false}>
+              {rows.map((r) => (
+                <motion.div
+                  key={r.ticker}
+                  layout
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 24, height: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="drill-row"
+                  style={{ gridTemplateColumns: "70px 1fr 60px 90px" }}
                 >
-                  Hapus
-                </button>
-              </div>
-            ))}
+                  <Link href={`/saham/${r.ticker}`} className="t">
+                    {r.ticker}
+                  </Link>
+                  <span>{r.name}</span>
+                  <span className="s">{r.smfi}</span>
+                  <button
+                    onClick={() => remove(r.ticker)}
+                    style={{
+                      background: "none",
+                      border: "1px solid var(--border)",
+                      borderRadius: 5,
+                      padding: "4px 9px",
+                      fontSize: 11,
+                      color: "var(--text-faint)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Hapus
+                  </button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>
