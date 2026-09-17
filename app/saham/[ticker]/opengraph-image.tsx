@@ -35,25 +35,25 @@ export default async function OgImage({ params }: { params: Promise<{ ticker: st
           flexDirection: "column",
           width: "100%",
           height: "100%",
-          background: "#0B0E11",
+          background: "#0B0F17",
           padding: 64,
           fontFamily: "sans-serif",
-          color: "#E7E9EC",
+          color: "#E9EEF4",
         }}
       >
-        <div style={{ display: "flex", fontSize: 28, color: "#E3A53D", fontWeight: 700 }}>ARUS TERMINAL</div>
+        <div style={{ display: "flex", fontSize: 28, color: "#26C6B4", fontWeight: 700 }}>ARUS TERMINAL</div>
 
         <div style={{ display: "flex", marginTop: 40, fontSize: 96, fontWeight: 800 }}>{ticker}</div>
 
-        <div style={{ display: "flex", fontSize: 30, color: "#98A1AC", marginTop: 4 }}>{nameText}</div>
+        <div style={{ display: "flex", fontSize: 30, color: "#9FADC0", marginTop: 4 }}>{nameText}</div>
 
         <div style={{ display: "flex", flexDirection: "row", marginTop: 56 }}>
           <div style={{ display: "flex", flexDirection: "column", width: 400 }}>
-            <div style={{ display: "flex", fontSize: 22, color: "#5B6470" }}>SMFI SCORE</div>
+            <div style={{ display: "flex", fontSize: 22, color: "#5F6D82" }}>SMFI SCORE</div>
             <div style={{ display: "flex", fontSize: 72, fontWeight: 800 }}>{smfiText}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", fontSize: 22, color: "#5B6470" }}>DIVERGENCE DELTA</div>
+            <div style={{ display: "flex", fontSize: 22, color: "#5F6D82" }}>DIVERGENCE DELTA</div>
             <div style={{ display: "flex", fontSize: 72, fontWeight: 800 }}>{divergenceText}</div>
           </div>
         </div>
@@ -64,8 +64,8 @@ export default async function OgImage({ params }: { params: Promise<{ ticker: st
               display: "flex",
               fontSize: 26,
               fontWeight: 600,
-              color: "#F3C36B",
-              background: "#2A2116",
+              color: "#4FE0CE",
+              background: "#123330",
               paddingTop: 10,
               paddingBottom: 10,
               paddingLeft: 22,
@@ -77,7 +77,7 @@ export default async function OgImage({ params }: { params: Promise<{ ticker: st
           </div>
         </div>
 
-        <div style={{ display: "flex", marginTop: "auto", fontSize: 20, color: "#5B6470" }}>
+        <div style={{ display: "flex", marginTop: "auto", fontSize: 20, color: "#5F6D82" }}>
           Skor turunan dari data transaksi IDX · bukan nasihat investasi
         </div>
       </div>

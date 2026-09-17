@@ -78,7 +78,7 @@ export default function TanyaPage() {
             disabled={loading}
             style={{
               background: "var(--accent)",
-              color: "#1a1305",
+              color: "#04211C",
               border: "none",
               borderRadius: 8,
               padding: "10px 18px",
