@@ -61,6 +61,14 @@ describe("scoreUniverse — jalur normal", () => {
       expect(s.smfi).toBeLessThanOrEqual(100);
       expect(Number.isNaN(s.smfi)).toBe(false);
       expect(Number.isNaN(s.divergenceDelta)).toBe(false);
+      // percentileRank() sudah 0-100 — regresi "dikali 100 lagi" pernah lolos
+      // ke production (nilai sampai 10000) karena nggak ada assertion ini.
+      expect(s.percentiles.flowPctl).toBeGreaterThanOrEqual(0);
+      expect(s.percentiles.flowPctl).toBeLessThanOrEqual(100);
+      expect(s.percentiles.institutionalPctl).toBeGreaterThanOrEqual(0);
+      expect(s.percentiles.institutionalPctl).toBeLessThanOrEqual(100);
+      expect(s.percentiles.turnoverPctl).toBeGreaterThanOrEqual(0);
+      expect(s.percentiles.turnoverPctl).toBeLessThanOrEqual(100);
     }
 
     const strongScore = scored.find((s) => s.ticker === "STRONG")!;
