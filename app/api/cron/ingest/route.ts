@@ -284,6 +284,10 @@ export async function POST(req: NextRequest) {
           smfi_score: s.smfi,
           divergence_delta: s.divergenceDelta,
           confluence_label: s.confluence,
+          flow_pctl: s.percentiles.flowPctl,
+          institutional_pctl: s.percentiles.institutionalPctl,
+          turnover_pctl: s.percentiles.turnoverPctl,
+          insider_pctl: s.percentiles.insiderPctl,
           computed_at: new Date().toISOString(),
         }))
       );

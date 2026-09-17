@@ -4,13 +4,16 @@ import { confluenceLabel } from "@/lib/formulas/smfi";
 import WatchButton from "./WatchButton";
 import ExplainButton from "./ExplainButton";
 import ShareButton from "./ShareButton";
+import PriceFlowChart from "@/components/charts/PriceFlowChart";
+import ComponentRadar from "@/components/charts/ComponentRadar";
+import SmfiHistoryChart from "@/components/charts/SmfiHistoryChart";
 
 export const revalidate = 300;
 
 export default async function DetailSahamPage({ params }: { params: Promise<{ ticker: string }> }) {
   const { ticker: rawTicker } = await params; // Next.js 16: params jadi Promise
   const ticker = rawTicker.toUpperCase();
-  const { company, score, prices, flows } = await getTickerDetail(ticker);
+  const { company, score, prices, flows, scoreHistory } = await getTickerDetail(ticker);
 
   if (!company) notFound();
 
@@ -21,6 +24,18 @@ export default async function DetailSahamPage({ params }: { params: Promise<{ ti
   const log = prices
     .map((p: any) => ({ ...p, flow: flowByDate.get(p.date) }))
     .reverse();
+
+  const priceFlowData = prices.map((p: any) => ({
+    date: p.date,
+    close: Number(p.close),
+    netForeignBuy: flowByDate.get(p.date) ? Number((flowByDate.get(p.date) as any).net_foreign_buy) : null,
+  }));
+
+  const smfiHistoryData = (scoreHistory as any[]).map((h) => ({
+    date: h.date,
+    smfi: h.smfi_score,
+    divergence: h.divergence_delta,
+  }));
 
   return (
     <>
@@ -64,6 +79,46 @@ export default async function DetailSahamPage({ params }: { params: Promise<{ ti
           </div>
         ) : (
           <div className="empty-state">Belum ada skor buat {ticker} — jalankan ingest/seed dulu.</div>
+        )}
+
+        {priceFlowData.length > 0 && (
+          <section>
+            <div className="section-title">
+              <h2>Harga &amp; Net Foreign Buy</h2>
+              <span className="count">{priceFlowData.length} hari bursa</span>
+            </div>
+            <div className="chart-card">
+              <PriceFlowChart data={priceFlowData} />
+            </div>
+          </section>
+        )}
+
+        {score && (
+          <div className="chart-row">
+            <section style={{ flex: "1 1 320px" }}>
+              <div className="section-title">
+                <h2>Breakdown Komponen SMFI</h2>
+              </div>
+              <div className="chart-card">
+                <ComponentRadar
+                  data={{
+                    flowPctl: (score as any).flow_pctl,
+                    institutionalPctl: (score as any).institutional_pctl,
+                    turnoverPctl: (score as any).turnover_pctl,
+                    insiderPctl: (score as any).insider_pctl,
+                  }}
+                />
+              </div>
+            </section>
+            <section style={{ flex: "1 1 320px" }}>
+              <div className="section-title">
+                <h2>Riwayat Skor</h2>
+              </div>
+              <div className="chart-card">
+                <SmfiHistoryChart data={smfiHistoryData} />
+              </div>
+            </section>
+          </div>
         )}
 
         <section>

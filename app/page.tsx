@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getShortlist, confluenceText } from "@/lib/queries";
+import { StaggerGrid, StaggerItem } from "@/components/motion/StaggerGrid";
+import ShortlistCard from "@/components/ShortlistCard";
 
 export const revalidate = 300; // 5 menit — halaman ini baca dari cache Supabase, bukan API Sectors langsung
 
@@ -27,35 +29,13 @@ export default async function BerandaPage() {
               tunggu cron ingest pertama jalan begitu <code>SECTORS_API_KEY</code> sudah diisi.
             </div>
           ) : (
-            <div className="shortlist-grid">
+            <StaggerGrid className="shortlist-grid">
               {rows.map((s) => (
-                <Link key={s.ticker} href={`/saham/${s.ticker}`} className="stockcard">
-                  <div className="row1">
-                    <div>
-                      <div className="ticker">{s.ticker}</div>
-                      <div className="name">{s.name}</div>
-                    </div>
-                    {s.sector && <span className="sector-pill">{s.sector}</span>}
-                  </div>
-                  <div className="scorepair">
-                    <div>
-                      <div className="lbl">SMFI</div>
-                      <div className="val">{s.smfi}</div>
-                    </div>
-                    <div>
-                      <div className="lbl">DIVERGENCE</div>
-                      <div className="val">
-                        {s.divergenceDelta > 0 ? "+" : ""}
-                        {s.divergenceDelta}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={`confluence-pill ${s.confluence === "distribusi" || s.confluence === "sudah_di_harga" ? "cool" : "hot"}`}>
-                    {confluenceText(s.confluence)}
-                  </div>
-                </Link>
+                <StaggerItem key={s.ticker}>
+                  <ShortlistCard row={s} />
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerGrid>
           )}
         </section>
       </div>

@@ -80,6 +80,12 @@ export function scoreUniverse(
       ticker: e.input.ticker,
       date: asOfDate,
       raw: e.raw,
+      percentiles: {
+        flowPctl: Math.round(safePctl(pctlFlow[i] ?? NaN) * 100),
+        institutionalPctl: Math.round(safePctl(pctlInst[i] ?? NaN) * 100),
+        turnoverPctl: Math.round(safePctl(pctlTurn[i] ?? NaN) * 100),
+        insiderPctl: hasInsiderData ? Math.round(safePctl(pctlInsider[i] ?? NaN) * 100) : null,
+      },
       smfi,
       divergenceDelta,
       confluence: confluenceLabel(smfi, divergenceDelta),

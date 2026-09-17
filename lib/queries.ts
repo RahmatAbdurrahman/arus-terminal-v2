@@ -9,6 +9,7 @@ export interface ShortlistRow {
   divergenceDelta: number;
   confluence: ConfluenceLabel;
   date: string;
+  smfiHistory: number[];
 }
 
 const CONFLUENCE_TEXT: Record<ConfluenceLabel, string> = {
@@ -48,6 +49,21 @@ export async function getShortlist(limit = 5): Promise<{ rows: ShortlistRow[]; a
 
   if (error || !data) return { rows: [], asOfDate };
 
+  const tickers = data.map((r: any) => r.ticker);
+  const { data: historyRows } = await db
+    .from("derived_scores_daily")
+    .select("ticker,date,smfi_score")
+    .in("ticker", tickers)
+    .order("date", { ascending: true })
+    .limit(300);
+
+  const historyByTicker = new Map<string, number[]>();
+  for (const h of historyRows ?? []) {
+    const arr = historyByTicker.get((h as any).ticker) ?? [];
+    arr.push((h as any).smfi_score);
+    historyByTicker.set((h as any).ticker, arr);
+  }
+
   const rows: ShortlistRow[] = data.map((r: any) => ({
     ticker: r.ticker,
     name: r.companies?.name ?? r.ticker,
@@ -56,6 +72,7 @@ export async function getShortlist(limit = 5): Promise<{ rows: ShortlistRow[]; a
     divergenceDelta: r.divergence_delta,
     confluence: r.confluence_label as ConfluenceLabel,
     date: r.date,
+    smfiHistory: historyByTicker.get(r.ticker) ?? [],
   }));
 
   return { rows, asOfDate };
@@ -65,14 +82,15 @@ export async function getTickerDetail(ticker: string) {
   const db = supabasePublic();
   const asOfDate = await latestScoreDate();
 
-  const [{ data: company }, { data: score }, { data: prices }, { data: flows }] = await Promise.all([
+  const [{ data: company }, { data: score }, { data: prices }, { data: flows }, { data: scoreHistory }] = await Promise.all([
     db.from("companies").select("*").eq("ticker", ticker).maybeSingle(),
     asOfDate
       ? db.from("derived_scores_daily").select("*").eq("ticker", ticker).eq("date", asOfDate).maybeSingle()
       : Promise.resolve({ data: null }),
-    db.from("price_daily").select("*").eq("ticker", ticker).order("date", { ascending: true }).limit(15),
-    db.from("broker_flow_daily").select("*").eq("ticker", ticker).order("date", { ascending: true }).limit(15),
+    db.from("price_daily").select("*").eq("ticker", ticker).order("date", { ascending: true }).limit(90),
+    db.from("broker_flow_daily").select("*").eq("ticker", ticker).order("date", { ascending: true }).limit(90),
+    db.from("derived_scores_daily").select("date,smfi_score,divergence_delta").eq("ticker", ticker).order("date", { ascending: true }).limit(90),
   ]);
 
-  return { company, score, prices: prices ?? [], flows: flows ?? [] };
+  return { company, score, prices: prices ?? [], flows: flows ?? [], scoreHistory: scoreHistory ?? [] };
 }

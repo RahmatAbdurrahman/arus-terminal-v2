@@ -58,10 +58,19 @@ export interface ComponentScores {
   insiderSignal: number | null; // null kalau data insider nggak tersedia
 }
 
+/** Persentil tiap komponen (0-100) SEBELUM dibobot — dasar radar chart breakdown di UI. */
+export interface ComponentPercentiles {
+  flowPctl: number;
+  institutionalPctl: number;
+  turnoverPctl: number;
+  insiderPctl: number | null; // null kalau hari itu nggak ada ticker mana pun dengan data insider (bobot dialihkan)
+}
+
 export interface ScoredTicker {
   ticker: string;
   date: string;
   raw: ComponentScores;
+  percentiles: ComponentPercentiles;
   smfi: number; // 0-100, setelah persentil + bobot + penalti float
   divergenceDelta: number; // -100..100
   confluence: ConfluenceLabel;

@@ -7,7 +7,8 @@ create table if not exists companies (
   sector         text,
   sub_sector     text,
   is_lq45        boolean not null default false,
-  free_float_pct numeric,
+  free_float_pct numeric, -- proxy dari ownership."Public", bukan definisi resmi bursa — lihat lib/sectors/UNVERIFIED.md
+  listing_date   date,
   updated_at     timestamptz not null default now()
 );
 
@@ -47,12 +48,16 @@ create table if not exists insider_signal_daily (
 );
 
 create table if not exists derived_scores_daily (
-  ticker            text not null references companies(ticker) on delete cascade,
-  date              date not null,
-  smfi_score        numeric not null,
-  divergence_delta  numeric not null,
-  confluence_label  text not null,
-  computed_at       timestamptz not null default now(),
+  ticker              text not null references companies(ticker) on delete cascade,
+  date                date not null,
+  smfi_score          numeric not null,
+  divergence_delta    numeric not null,
+  confluence_label    text not null,
+  flow_pctl           numeric, -- persentil komponen (0-100) SEBELUM dibobot — breakdown radar chart di UI
+  institutional_pctl  numeric,
+  turnover_pctl       numeric,
+  insider_pctl        numeric, -- null kalau hari itu bobot insider dialihkan (nggak ada data insider sama sekali)
+  computed_at         timestamptz not null default now(),
   primary key (ticker, date)
 );
 
@@ -84,6 +89,19 @@ create table if not exists narratives_cache (
   created_at  timestamptz not null default now()
 );
 
+create table if not exists backtest_results (
+  id                           uuid primary key default gen_random_uuid(),
+  run_at                       timestamptz not null default now(),
+  tickers_sampled              text[] not null,
+  n_observations               integer not null,
+  smfi_threshold                numeric not null,
+  n_above_threshold             integer not null,
+  avg_forward_return_above      numeric not null,
+  avg_forward_return_baseline   numeric not null,
+  window_days                   integer not null,
+  forward_days                  integer not null
+);
+
 create index if not exists idx_derived_scores_date_smfi
   on derived_scores_daily (date, smfi_score desc);
 
@@ -104,6 +122,7 @@ alter table narratives_cache enable row level security;
 alter table brokers_registry enable row level security;
 alter table insider_signal_daily enable row level security;
 alter table ingestion_runs enable row level security;
+alter table backtest_results enable row level security;
 
 -- Baca publik (produk ini nggak pakai akun) buat tabel yang tampil di UI
 create policy "public read" on companies for select using (true);
@@ -112,6 +131,7 @@ create policy "public read" on broker_flow_daily for select using (true);
 create policy "public read" on derived_scores_daily for select using (true);
 create policy "public read" on sector_rotation_daily for select using (true);
 create policy "public read" on narratives_cache for select using (true);
+create policy "public read" on backtest_results for select using (true);
 
 -- Tabel operasional: service role saja, tidak ada policy untuk anon/authenticated
 -- (brokers_registry, insider_signal_daily, ingestion_runs sengaja tidak dibuatkan

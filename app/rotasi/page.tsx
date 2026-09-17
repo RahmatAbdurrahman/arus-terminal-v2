@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSectorRotation } from "@/lib/queries-rotation";
+import RotationScatter from "@/components/charts/RotationScatter";
 
 export const revalidate = 300;
 
@@ -28,17 +29,28 @@ export default async function RotasiPage() {
             harga per saham).
           </div>
         ) : (
-          <section>
-            <div className="sector-grid">
-              {rows.map((r) => (
-                <Link key={r.subSector} href={`/rotasi/${encodeURIComponent(r.subSector)}`} className="sectile">
-                  <div className="sname">{r.subSector}</div>
-                  <div className={`slabel ${LABEL_CLASS[r.label]}`}>{r.label}</div>
-                  <div className="sbreadth">breadth {Math.round(r.breadth)}%</div>
-                </Link>
-              ))}
-            </div>
-          </section>
+          <>
+            <section>
+              <div className="section-title">
+                <h2>Peta Rotasi</h2>
+                <span className="count">momentum × breadth, ukuran titik = |money flow|</span>
+              </div>
+              <div className="chart-card">
+                <RotationScatter data={rows} />
+              </div>
+            </section>
+            <section>
+              <div className="sector-grid">
+                {rows.map((r) => (
+                  <Link key={r.subSector} href={`/rotasi/${encodeURIComponent(r.subSector)}`} className="sectile">
+                    <div className="sname">{r.subSector}</div>
+                    <div className={`slabel ${LABEL_CLASS[r.label]}`}>{r.label}</div>
+                    <div className="sbreadth">breadth {Math.round(r.breadth)}%</div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </div>
     </>

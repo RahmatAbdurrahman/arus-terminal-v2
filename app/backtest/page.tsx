@@ -1,4 +1,5 @@
 import { getLatestBacktest } from "@/lib/queries-backtest";
+import BacktestChart from "@/components/charts/BacktestChart";
 
 export const revalidate = 3600;
 
@@ -29,7 +30,14 @@ export default async function BacktestPage() {
                 depan dari tiap hari.
               </p>
 
-              <div className="component-grid" style={{ marginTop: 16 }}>
+              <div className="chart-card" style={{ marginTop: 16 }}>
+                <BacktestChart
+                  avgAbove={bt.avgForwardReturnAbove}
+                  avgBaseline={bt.avgForwardReturnBaseline}
+                  smfiThreshold={bt.smfiThreshold}
+                />
+              </div>
+              <div className="component-grid" style={{ marginTop: 4 }}>
                 <div className="component">
                   <div className="lbl">
                     Rata-rata return {bt.forwardDays}h (SMFI ≥ {bt.smfiThreshold})
