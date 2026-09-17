@@ -1,0 +1,622 @@
+<title>ARUS Terminal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#F1F1EC; --surface:#FFFFFF; --surface-2:#F5F5F0; --border:#DBDBD3;
+    --text:#14171B; --text-soft:#565F68; --text-faint:#8B939C;
+    --accent:#9C6C16; --accent-strong:#7A5410; --accent-tint:#F3E4C2;
+    --cool:#3D6E9C; --cool-tint:#DCE7F0;
+    --neutral:#6B737C; --neutral-tint:#E6E6E1;
+    --mono:'JetBrains Mono',ui-monospace,'SF Mono',Consolas,monospace;
+    --body:'Public Sans','Segoe UI',system-ui,sans-serif;
+    --shadow:0 1px 2px rgba(20,23,27,.05), 0 8px 24px -12px rgba(20,23,27,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0B0E11; --surface:#13171C; --surface-2:#1A2028; --border:#262D36;
+      --text:#E7E9EC; --text-soft:#98A1AC; --text-faint:#5B6470;
+      --accent:#E3A53D; --accent-strong:#F3C36B; --accent-tint:#2A2116;
+      --cool:#6E9BC7; --cool-tint:#172230;
+      --neutral:#8B929B; --neutral-tint:#20242B;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0B0E11; --surface:#13171C; --surface-2:#1A2028; --border:#262D36;
+    --text:#E7E9EC; --text-soft:#98A1AC; --text-faint:#5B6470;
+    --accent:#E3A53D; --accent-strong:#F3C36B; --accent-tint:#2A2116;
+    --cool:#6E9BC7; --cool-tint:#172230;
+    --neutral:#8B929B; --neutral-tint:#20242B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -12px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  body{ background:var(--bg); color:var(--text); font-family:var(--body); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  a{color:inherit;}
+  button{font-family:inherit;}
+  ::selection{ background:var(--accent-tint); }
+  *:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  table{ font-variant-numeric:tabular-nums; }
+
+  /* ---------- shell ---------- */
+  .shell{ display:flex; min-height:100vh; }
+  @media (max-width:860px){ .shell{ flex-direction:column; } }
+
+  .side{
+    flex:0 0 252px; background:var(--surface); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; padding:20px 16px 16px; gap:22px; position:sticky; top:0; height:100vh;
+  }
+  @media (max-width:860px){ .side{ position:static; height:auto; flex-direction:row; align-items:center; flex-wrap:wrap; border-right:none; border-bottom:1px solid var(--border); padding:14px 16px; gap:12px; } }
+
+  .brand{ display:flex; flex-direction:column; gap:2px; }
+  .brand .wordmark{ font-family:var(--mono); font-weight:800; font-size:22px; letter-spacing:-0.02em; }
+  .brand .wordmark span{ color:var(--accent); }
+  .brand .tag{ font-size:11.5px; color:var(--text-faint); font-family:var(--mono); letter-spacing:.02em; }
+
+  .navgroup{ display:flex; flex-direction:column; gap:6px; }
+  @media (max-width:860px){ .navgroup{ flex-direction:row; flex-wrap:wrap; } }
+  .navgroup .label{ font-family:var(--mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-faint); padding:0 10px; margin-bottom:2px; }
+  @media (max-width:860px){ .navgroup .label{ display:none; } }
+
+  .navbtn{
+    display:flex; align-items:center; gap:9px; text-align:left; background:none; border:1px solid transparent; border-radius:6px;
+    padding:8px 10px; font-size:13.6px; color:var(--text-soft); cursor:pointer; width:100%;
+  }
+  @media (max-width:860px){ .navbtn{ width:auto; } }
+  .navbtn:hover{ background:var(--surface-2); color:var(--text); }
+  .navbtn.active{ background:var(--accent-tint); color:var(--text); border-color:var(--accent); font-weight:600; }
+  .navbtn .dot{ width:5px; height:5px; border-radius:50%; background:currentColor; opacity:.4; flex:0 0 auto; }
+  .navbtn.active .dot{ background:var(--accent); opacity:1; }
+
+  .badge{ font-family:var(--mono); font-size:9.5px; letter-spacing:.04em; padding:2px 6px; border-radius:20px; margin-left:auto; flex:0 0 auto; }
+  .badge.core{ background:var(--accent-tint); color:var(--accent-strong); }
+  .badge.support{ background:var(--neutral-tint); color:var(--text-soft); }
+
+  .side-foot{ margin-top:auto; font-size:11px; color:var(--text-faint); border-top:1px solid var(--border); padding-top:12px; line-height:1.5; }
+  @media (max-width:860px){ .side-foot{ display:none; } }
+
+  .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    padding:18px 28px; border-bottom:1px solid var(--border); background:var(--surface);
+  }
+  @media (max-width:640px){ .topbar{ padding:14px 16px; } }
+  .topbar h1{ font-family:var(--mono); font-size:19px; font-weight:700; margin:0; text-wrap:balance; }
+  .topbar .sub{ font-size:12.5px; color:var(--text-soft); margin-top:3px; }
+  .freshness{ display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:11.5px; color:var(--text-soft); background:var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:5px 12px; flex:0 0 auto; }
+  .freshness .pulse{ width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
+
+  .view{ padding:26px 28px 56px; display:flex; flex-direction:column; gap:26px; }
+  @media (max-width:640px){ .view{ padding:18px 16px 40px; } }
+  .view[hidden]{ display:none; }
+
+  section{ display:flex; flex-direction:column; gap:14px; }
+  .section-title{ display:flex; align-items:baseline; gap:10px; }
+  .section-title h2{ font-family:var(--mono); font-size:14px; font-weight:700; margin:0; letter-spacing:.01em; }
+  .section-title .count{ font-family:var(--mono); font-size:11.5px; color:var(--text-faint); }
+  .section-note{ font-size:12.8px; color:var(--text-soft); margin-top:-6px; max-width:64ch; }
+
+  /* ---------- shortlist cards ---------- */
+  .shortlist-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+  .stockcard{
+    background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px;
+    display:flex; flex-direction:column; gap:12px; cursor:pointer; text-align:left; width:100%; box-shadow:var(--shadow);
+  }
+  .stockcard:hover{ border-color:var(--accent); }
+  .stockcard .row1{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .stockcard .ticker{ font-family:var(--mono); font-weight:800; font-size:18px; letter-spacing:-.01em; }
+  .stockcard .name{ font-size:11.5px; color:var(--text-faint); margin-top:1px; }
+  .sector-pill{ font-family:var(--mono); font-size:10px; color:var(--text-soft); background:var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:3px 8px; white-space:nowrap; }
+
+  .scorepair{ display:flex; gap:18px; }
+  .scorepair .item .lbl{ font-family:var(--mono); font-size:10px; color:var(--text-faint); letter-spacing:.03em; }
+  .scorepair .item .val{ font-family:var(--mono); font-size:24px; font-weight:700; line-height:1.1; }
+
+  .confluence-pill{ font-family:var(--mono); font-size:11px; font-weight:600; padding:5px 10px; border-radius:5px; display:inline-flex; align-items:center; gap:6px; width:fit-content; }
+  .confluence-pill.hot{ background:var(--accent-tint); color:var(--accent-strong); }
+  .confluence-pill.cool{ background:var(--cool-tint); color:var(--cool); }
+  .confluence-pill::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+  .stockcard .reason{ font-size:12px; color:var(--text-soft); }
+  .stockcard .trend{ font-size:11px; color:var(--text-faint); font-family:var(--mono); }
+
+  .excluded-strip{ font-size:12px; color:var(--text-soft); border:1px dashed var(--border); border-radius:6px; padding:10px 14px; background:var(--surface-2); }
+  .excluded-strip b{ color:var(--text); }
+
+  /* ---------- detail view ---------- */
+  .detail-head{ display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:22px 24px; box-shadow:var(--shadow); }
+  .detail-head .id .ticker{ font-family:var(--mono); font-weight:800; font-size:30px; }
+  .detail-head .id .name{ color:var(--text-soft); font-size:13px; margin-top:2px; }
+  .bignum{ display:flex; flex-direction:column; gap:2px; }
+  .bignum .lbl{ font-family:var(--mono); font-size:10.5px; color:var(--text-faint); letter-spacing:.03em; }
+  .bignum .val{ font-family:var(--mono); font-size:34px; font-weight:800; }
+  .bignum .val small{ font-size:15px; font-weight:600; color:var(--text-faint); }
+
+  .component-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+  .component{ background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px; }
+  .component .lbl{ font-family:var(--mono); font-size:11px; color:var(--text-soft); display:flex; justify-content:space-between; }
+  .component .lbl b{ color:var(--text); font-size:13px; }
+  .meter{ height:6px; border-radius:4px; background:var(--neutral-tint); margin-top:9px; overflow:hidden; }
+  .meter i{ display:block; height:100%; background:var(--accent); border-radius:4px; }
+
+  .chart-card{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px 22px; box-shadow:var(--shadow); }
+  .chart-card svg{ width:100%; height:auto; display:block; }
+  .legend{ display:flex; gap:18px; font-size:11.5px; color:var(--text-soft); margin-top:8px; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .legend i{ width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+  .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:8px; }
+  table{ width:100%; border-collapse:collapse; font-size:12.6px; min-width:520px; background:var(--surface); }
+  th,td{ padding:9px 14px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
+  th{ font-family:var(--mono); font-size:10.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--text-faint); font-weight:500; }
+  tbody tr:last-child td{ border-bottom:none; }
+  td.num{ font-family:var(--mono); }
+
+  .ca-notice{ display:flex; gap:10px; align-items:flex-start; background:var(--cool-tint); border:1px solid var(--cool); border-left-width:3px; border-radius:6px; padding:12px 16px; font-size:12.8px; color:var(--text); }
+
+  /* ---------- methodology ---------- */
+  .formula-card{ background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:6px; padding:20px 22px; box-shadow:var(--shadow); }
+  .formula-card h3{ font-family:var(--mono); font-size:15px; margin:0 0 10px; }
+  .formula-block{ font-family:var(--mono); font-size:12.5px; color:var(--text-soft); background:var(--surface-2); border-radius:6px; padding:12px 14px; white-space:pre; overflow-x:auto; margin:10px 0; }
+  .formula-card p{ font-size:13.4px; color:var(--text-soft); max-width:70ch; margin:8px 0 0; }
+  .weight-bars{ display:flex; flex-direction:column; gap:8px; margin:12px 0; }
+  .weight-row{ display:grid; grid-template-columns:150px 1fr 40px; gap:10px; align-items:center; font-size:12px; }
+  .weight-row .wname{ color:var(--text-soft); }
+  .weight-row .wbar{ height:8px; background:var(--neutral-tint); border-radius:4px; overflow:hidden; }
+  .weight-row .wbar i{ display:block; height:100%; background:var(--accent); }
+  .weight-row .wval{ font-family:var(--mono); text-align:right; color:var(--text); }
+
+  .limits-list{ display:flex; flex-direction:column; gap:8px; }
+  .limits-list div{ display:flex; gap:10px; font-size:13px; color:var(--text-soft); }
+  .limits-list div::before{ content:"—"; color:var(--text-faint); flex:0 0 auto; }
+
+  /* ---------- sector rotation ---------- */
+  .sector-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .sectile{ border:1px solid var(--border); border-radius:8px; padding:14px; cursor:pointer; display:flex; flex-direction:column; gap:8px; background:var(--surface); }
+  .sectile.sel{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .sectile .sname{ font-size:12.5px; font-weight:600; }
+  .sectile .slabel{ font-family:var(--mono); font-size:10.5px; padding:3px 8px; border-radius:20px; width:fit-content; }
+  .sectile .sbreadth{ font-family:var(--mono); font-size:11px; color:var(--text-faint); }
+  .l-hot{ background:var(--accent-tint); color:var(--accent-strong); }
+  .l-warm{ background:var(--accent-tint); color:var(--accent-strong); opacity:.72; }
+  .l-cold{ background:var(--neutral-tint); color:var(--text-soft); }
+  .l-dist{ background:var(--cool-tint); color:var(--cool); }
+
+  .drill-list{ display:flex; flex-direction:column; gap:0; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--surface); }
+  .drill-row{ display:grid; grid-template-columns:80px 1fr 70px; gap:12px; padding:10px 16px; border-bottom:1px solid var(--border); align-items:center; font-size:12.8px; }
+  .drill-row:last-child{ border-bottom:none; }
+  .drill-row .t{ font-family:var(--mono); font-weight:700; }
+  .drill-row .s{ font-family:var(--mono); text-align:right; color:var(--accent-strong); }
+
+  /* ---------- watchlist ---------- */
+  .storage-note{ display:flex; gap:10px; align-items:flex-start; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:11px 14px; font-size:12.4px; color:var(--text-soft); }
+  .watch-row{ display:flex; align-items:center; gap:14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 16px; }
+  .watch-row .t{ font-family:var(--mono); font-weight:700; width:70px; }
+  .watch-row .n{ color:var(--text-soft); font-size:12.5px; flex:1; }
+  .watch-row .s{ font-family:var(--mono); font-size:13px; }
+  .watch-empty{ border:1px dashed var(--border); border-radius:8px; padding:28px; text-align:center; color:var(--text-faint); font-size:13px; }
+  .rmv{ background:none; border:1px solid var(--border); border-radius:5px; padding:4px 9px; font-size:11px; color:var(--text-faint); cursor:pointer; }
+  .rmv:hover{ color:var(--text); border-color:var(--text-faint); }
+
+  /* ---------- tanya arus ---------- */
+  .ask-box{ display:flex; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 6px 6px 16px; align-items:center; box-shadow:var(--shadow); }
+  .ask-box input{ flex:1; border:none; background:none; outline:none; font-size:14px; color:var(--text); font-family:var(--body); padding:10px 0; min-width:0; }
+  .ask-box input::placeholder{ color:var(--text-faint); }
+  .ask-box button{ background:var(--accent); color:#1a1305; border:none; border-radius:6px; padding:9px 16px; font-size:12.5px; font-weight:700; font-family:var(--mono); cursor:pointer; flex:0 0 auto; }
+  :root[data-theme="light"] .ask-box button, :root:not([data-theme="dark"]) .ask-box button { color:#3a2a06; }
+  .ask-examples{ display:flex; flex-wrap:wrap; gap:8px; }
+  .ask-chip{ font-size:11.5px; font-family:var(--mono); background:var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:5px 11px; color:var(--text-soft); cursor:pointer; }
+  .ask-chip:hover{ border-color:var(--accent); color:var(--text); }
+  .constraint-note{ display:flex; gap:9px; align-items:flex-start; font-size:12px; color:var(--text-faint); border-top:1px solid var(--border); padding-top:14px; margin-top:4px; }
+</style>
+
+<div class="shell">
+  <nav class="side">
+    <div class="brand">
+      <div class="wordmark">ARUS<span>·</span></div>
+      <div class="tag">TERMINAL SMART MONEY IDX</div>
+    </div>
+
+    <div class="navgroup">
+      <div class="label">Fitur inti</div>
+      <button class="navbtn active" data-view="beranda"><span class="dot"></span>Beranda<span class="badge core">WAJIB</span></button>
+      <button class="navbtn" data-view="detail"><span class="dot"></span>Detail Saham<span class="badge core">WAJIB</span></button>
+      <button class="navbtn" data-view="metodologi"><span class="dot"></span>Metodologi<span class="badge core">WAJIB</span></button>
+    </div>
+
+    <div class="navgroup">
+      <div class="label">Fitur pendukung</div>
+      <button class="navbtn" data-view="rotasi"><span class="dot"></span>Rotasi Sektor<span class="badge support">SHOULD</span></button>
+      <button class="navbtn" data-view="watchlist"><span class="dot"></span>Watchlist<span class="badge support">COULD</span></button>
+      <button class="navbtn" data-view="tanya"><span class="dot"></span>Tanya ARUS<span class="badge support">COULD</span></button>
+    </div>
+
+    <div class="side-foot">Mockup diskusi tim — data contoh, bukan data bursa sungguhan. Lihat PRD.md untuk spesifikasi lengkap.</div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ============ BERANDA ============ -->
+    <div class="view" id="view-beranda">
+      <div class="topbar">
+        <div>
+          <h1>Daftar Pendek Hari Ini</h1>
+          <div class="sub">Lima saham dengan sinyal akumulasi terkuat — klik untuk lihat buktinya</div>
+        </div>
+        <div class="freshness"><span class="pulse"></span>Diperbarui 24 Sep 2026, 16:15 WIB</div>
+      </div>
+      <div class="view-body" style="padding:26px 28px 56px; display:flex; flex-direction:column; gap:22px;">
+
+        <section>
+          <div class="shortlist-grid" id="shortlist-grid"></div>
+        </section>
+
+        <section>
+          <div class="section-title"><h2>Dikecualikan hari ini</h2><span class="count">2 saham</span></div>
+          <div class="excluded-strip"><b>ISAT</b> — rights issue 22 Sep 2026, dikecualikan dari perhitungan periode ini.</div>
+          <div class="excluded-strip"><b>BRPT</b> — stock split 20 Sep 2026, dikecualikan dari perhitungan periode ini.</div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- ============ DETAIL ============ -->
+    <div class="view" id="view-detail" hidden>
+      <div class="topbar">
+        <div>
+          <h1>Detail Saham</h1>
+          <div class="sub" id="detail-sub">Rincian komponen skor, log transaksi, dan grafik arus vs harga</div>
+        </div>
+        <div class="freshness"><span class="pulse"></span>Log 15 hari bursa terakhir</div>
+      </div>
+      <div style="padding:26px 28px 56px; display:flex; flex-direction:column; gap:22px;" id="detail-body"></div>
+    </div>
+
+    <!-- ============ METODOLOGI ============ -->
+    <div class="view" id="view-metodologi" hidden>
+      <div class="topbar">
+        <div>
+          <h1>Metodologi</h1>
+          <div class="sub">Rumus terbuka — bisa diaudit siapa pun, bukan black box</div>
+        </div>
+      </div>
+      <div class="view-body" style="padding:26px 28px 56px; display:flex; flex-direction:column; gap:18px; max-width:820px;">
+
+        <div class="formula-card">
+          <h3>SMFI — Smart Money Flow Index <span style="color:var(--text-faint); font-weight:400;">· skor 0–100</span></h3>
+          <p>Menjawab: seberapa besar tanda-tanda institusi/asing sedang mengumpulkan saham ini, dibanding hari normal dan dibanding saham lain hari ini.</p>
+          <div class="weight-bars">
+            <div class="weight-row"><span class="wname">Intensitas arus</span><span class="wbar"><i style="width:40%"></i></span><span class="wval">40%</span></div>
+            <div class="weight-row"><span class="wname">Dominasi institusi</span><span class="wbar"><i style="width:30%"></i></span><span class="wval">30%</span></div>
+            <div class="weight-row"><span class="wname">Turnover relatif</span><span class="wbar"><i style="width:20%"></i></span><span class="wval">20%</span></div>
+            <div class="weight-row"><span class="wname">Sinyal insider</span><span class="wbar"><i style="width:10%"></i></span><span class="wval">10%</span></div>
+          </div>
+          <div class="formula-block">SMFI = 40%·pctl(flow_intensity) + 30%·pctl(dominasi_institusi)
+      + 20%·pctl(turnover_relatif) + 10%·pctl(sinyal_insider)
+      − penalti_float_kecil</div>
+          <p>Semua komponen di-ranking sebagai <b style="color:var(--text)">persentil</b> lintas seluruh universe hari itu — bukan ambang rupiah tetap. Rp15 miliar itu besar buat saham kecil, receh buat BBCA.</p>
+        </div>
+
+        <div class="formula-card">
+          <h3>Divergence Delta <span style="color:var(--text-faint); font-weight:400;">· −100 s/d +100</span></h3>
+          <p>Menjawab: asingnya udah masuk, tapi harganya udah gerak apa belum?</p>
+          <div class="formula-block">Divergence Delta = pctl(flow_intensity_15d) − pctl(perubahan_harga_15d)</div>
+          <p>Nilai tinggi = arus masuk deras tapi harga belum banyak bergerak — akumulasi senyap sebelum markup. Nilai rendah = harga sudah duluan naik, kemungkinan FOMO ritel, bukan smart money.</p>
+        </div>
+
+        <div class="formula-card">
+          <h3>Kenapa persentil, bukan angka absolut</h3>
+          <p>Data finansial berekor panjang — beberapa hari ekstrem bisa membuat rata-rata dan standar deviasi jadi tidak stabil. Persentil (ranking relatif) jauh lebih tahan terhadap outlier dibanding ambang rupiah tetap atau z-score.</p>
+        </div>
+
+        <div class="formula-card">
+          <h3>Batasan yang kami akui terbuka</h3>
+          <div class="limits-list">
+            <div>Data broker adalah proxy dari aktivitas transaksi, bukan bukti langsung kepemilikan asing atau niat institusi.</div>
+            <div>Data diperbarui 3× seminggu, bukan real-time — ada jeda antara kejadian dan terlihat di skor.</div>
+            <div>Universe terbatas pada saham paling likuid, bukan seluruh bursa.</div>
+            <div>Bukan nasihat investasi, dan tidak dirancang jadi dasar keputusan tunggal.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============ ROTASI SEKTOR ============ -->
+    <div class="view" id="view-rotasi" hidden>
+      <div class="topbar">
+        <div>
+          <h1>Rotasi Sektor</h1>
+          <div class="sub">Sektor mana yang lagi panas, mana yang lagi distribusi</div>
+        </div>
+        <div class="freshness"><span class="pulse"></span>11 sektor IDX</div>
+      </div>
+      <div style="padding:26px 28px 56px; display:flex; flex-direction:column; gap:22px;">
+        <section>
+          <div class="sector-grid" id="sector-grid"></div>
+        </section>
+        <section>
+          <div class="section-title"><h2 id="drill-title">Top 5 — Basic Materials</h2></div>
+          <div class="drill-list" id="drill-list"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ============ WATCHLIST ============ -->
+    <div class="view" id="view-watchlist" hidden>
+      <div class="topbar">
+        <div>
+          <h1>Watchlist</h1>
+          <div class="sub">Saham yang kamu simpan buat dipantau</div>
+        </div>
+      </div>
+      <div style="padding:26px 28px 56px; display:flex; flex-direction:column; gap:16px; max-width:640px;">
+        <div class="storage-note">💾 Tersimpan di perangkat ini saja (localStorage) — tanpa akun, tanpa login. Tidak sinkron lintas perangkat.</div>
+        <div id="watch-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+    </div>
+
+    <!-- ============ TANYA ARUS ============ -->
+    <div class="view" id="view-tanya" hidden>
+      <div class="topbar">
+        <div>
+          <h1>Tanya ARUS</h1>
+          <div class="sub">Cari pakai bahasa biasa, jawabannya dari data yang sudah dihitung</div>
+        </div>
+      </div>
+      <div style="padding:26px 28px 56px; display:flex; flex-direction:column; gap:18px; max-width:760px;">
+        <div class="ask-box">
+          <input id="ask-input" type="text" value="saham perbankan yang lagi diakumulasi diam-diam" />
+          <button id="ask-btn">Cari</button>
+        </div>
+        <div class="ask-examples">
+          <button class="ask-chip" data-q="sektor apa yang lagi hot minggu ini">sektor apa yang lagi hot minggu ini</button>
+          <button class="ask-chip" data-q="saham float kecil yang volumenya tiba-tiba naik">saham float kecil yang volumenya tiba-tiba naik</button>
+          <button class="ask-chip" data-q="mana yang harganya belum naik tapi asing udah masuk">mana yang harganya belum naik tapi asing udah masuk</button>
+        </div>
+        <section>
+          <div class="section-title"><h2>Hasil</h2><span class="count">3 saham cocok</span></div>
+          <div class="shortlist-grid" id="ask-results"></div>
+        </section>
+        <div class="constraint-note">⚙ Fitur ini hanya menerjemahkan pertanyaan jadi filter, lalu mencari di data yang sudah tersimpan. Tidak pernah memanggil API Sectors langsung per pertanyaan.</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  var STOCKS = [
+    { t:'ANTM', name:'Aneka Tambang', sector:'Basic Materials', smfi:78, div:62, trend:'naik dari 41 ke 78 dalam 5 hari', reason:'Arus asing 2,3x turnover normal, harga masih flat.',
+      comp:{flow:82,inst:74,turn:69,ins:55}, corp:null,
+      log:[
+        {d:'10 Sep',flow:1.2,price:1620},{d:'11 Sep',flow:0.8,price:1615},{d:'12 Sep',flow:2.1,price:1630},
+        {d:'15 Sep',flow:3.4,price:1625},{d:'16 Sep',flow:4.8,price:1640},{d:'17 Sep',flow:3.9,price:1635},
+        {d:'18 Sep',flow:5.6,price:1650},{d:'19 Sep',flow:6.2,price:1645},{d:'22 Sep',flow:7.1,price:1660},
+        {d:'23 Sep',flow:6.8,price:1655},{d:'24 Sep',flow:8.4,price:1670}
+      ] },
+    { t:'BBNI', name:'Bank Negara Indonesia', sector:'Financials', smfi:71, div:58, trend:'naik dari 55 ke 71 dalam 4 hari', reason:'Dominasi broker institusi 68% dari total transaksi.',
+      comp:{flow:70,inst:81,turn:58,ins:40}, corp:null,
+      log:[
+        {d:'10 Sep',flow:0.9,price:5425},{d:'11 Sep',flow:1.1,price:5400},{d:'12 Sep',flow:1.6,price:5450},
+        {d:'15 Sep',flow:2.0,price:5475},{d:'16 Sep',flow:2.4,price:5460},{d:'17 Sep',flow:3.1,price:5500},
+        {d:'18 Sep',flow:3.6,price:5480},{d:'19 Sep',flow:4.0,price:5520},{d:'22 Sep',flow:4.5,price:5510},
+        {d:'23 Sep',flow:4.9,price:5540},{d:'24 Sep',flow:5.3,price:5525}
+      ] },
+    { t:'PGAS', name:'Perusahaan Gas Negara', sector:'Energy', smfi:65, div:71, trend:'naik dari 30 ke 65 dalam 6 hari', reason:'Divergence tertinggi hari ini — harga belum bergerak sama sekali.',
+      comp:{flow:64,inst:55,turn:72,ins:50}, corp:null,
+      log:[
+        {d:'10 Sep',flow:0.4,price:1480},{d:'11 Sep',flow:0.6,price:1478},{d:'12 Sep',flow:1.0,price:1482},
+        {d:'15 Sep',flow:1.8,price:1479},{d:'16 Sep',flow:2.6,price:1481},{d:'17 Sep',flow:3.3,price:1480},
+        {d:'18 Sep',flow:4.1,price:1483},{d:'19 Sep',flow:4.9,price:1481},{d:'22 Sep',flow:5.4,price:1484},
+        {d:'23 Sep',flow:5.9,price:1482},{d:'24 Sep',flow:6.5,price:1485}
+      ] },
+    { t:'SMGR', name:'Semen Indonesia', sector:'Basic Materials', smfi:44, div:12, trend:'stabil di kisaran 40-48', reason:'Sinyal sedang, belum cukup kuat masuk pantauan utama.',
+      comp:{flow:48,inst:40,turn:45,ins:50}, corp:null,
+      log:[
+        {d:'10 Sep',flow:0.3,price:3280},{d:'11 Sep',flow:0.2,price:3275},{d:'12 Sep',flow:0.5,price:3290},
+        {d:'15 Sep',flow:0.4,price:3285},{d:'16 Sep',flow:0.6,price:3295},{d:'17 Sep',flow:0.3,price:3288},
+        {d:'18 Sep',flow:0.5,price:3300},{d:'19 Sep',flow:0.4,price:3292},{d:'22 Sep',flow:0.6,price:3305},
+        {d:'23 Sep',flow:0.5,price:3298},{d:'24 Sep',flow:0.7,price:3310}
+      ] },
+    { t:'INDF', name:'Indofood Sukses Makmur', sector:'Consumer Non-Cyclicals', smfi:29, div:-18, trend:'turun dari 52 ke 29 dalam 5 hari', reason:'Distribusi terdeteksi — harga naik tapi asing justru net-sell.',
+      comp:{flow:22,inst:31,turn:35,ins:30}, corp:null,
+      log:[
+        {d:'10 Sep',flow:-0.5,price:7100},{d:'11 Sep',flow:-0.8,price:7150},{d:'12 Sep',flow:-1.2,price:7200},
+        {d:'15 Sep',flow:-1.6,price:7225},{d:'16 Sep',flow:-2.0,price:7260},{d:'17 Sep',flow:-1.8,price:7240},
+        {d:'18 Sep',flow:-2.4,price:7280},{d:'19 Sep',flow:-2.1,price:7255},{d:'22 Sep',flow:-2.7,price:7300},
+        {d:'23 Sep',flow:-2.5,price:7270},{d:'24 Sep',flow:-2.9,price:7310}
+      ] }
+  ];
+
+  var SECTORS = [
+    {n:'Basic Materials', label:'hot', breadth:74}, {n:'Financials', label:'hot', breadth:68},
+    {n:'Energy', label:'warm', breadth:59}, {n:'Infrastructures', label:'warm', breadth:54},
+    {n:'Industrials', label:'cold', breadth:38}, {n:'Technology', label:'cold', breadth:33},
+    {n:'Consumer Cyclicals', label:'cold', breadth:41}, {n:'Healthcare', label:'cold', breadth:36},
+    {n:'Consumer Non-Cyclicals', label:'dist', breadth:22}, {n:'Properties & Real Estate', label:'dist', breadth:19},
+    {n:'Transportation & Logistics', label:'cold', breadth:44}
+  ];
+  var LABEL_TXT = {hot:'Hot', warm:'Warming', cold:'Cold', dist:'Distribution'};
+
+  function confluenceLabel(s){
+    if(s.smfi>=65 && s.div>=45) return {cls:'hot', txt:'Akumulasi masih senyap'};
+    if(s.smfi>=55 && s.div<20) return {cls:'cool', txt:'Sudah kelihatan di harga'};
+    if(s.div<0) return {cls:'cool', txt:'Distribusi terdeteksi'};
+    return {cls:'hot', txt:'Sinyal sedang'};
+  }
+
+  function renderShortlist(){
+    var grid = document.getElementById('shortlist-grid');
+    grid.innerHTML = STOCKS.map(function(s){
+      var c = confluenceLabel(s);
+      return '<button class="stockcard" data-t="'+s.t+'" onclick="ARUS.openDetail(\''+s.t+'\')">'+
+        '<div class="row1"><div><div class="ticker">'+s.t+'</div><div class="name">'+s.name+'</div></div><span class="sector-pill">'+s.sector+'</span></div>'+
+        '<div class="scorepair"><div class="item"><div class="lbl">SMFI</div><div class="val">'+s.smfi+'</div></div><div class="item"><div class="lbl">DIVERGENCE</div><div class="val">'+(s.div>0?'+':'')+s.div+'</div></div></div>'+
+        '<div class="confluence-pill '+c.cls+'">'+c.txt+'</div>'+
+        '<div class="reason">'+s.reason+'</div>'+
+        '<div class="trend">△ '+s.trend+'</div>'+
+      '</button>';
+    }).join('');
+  }
+
+  function meter(pct){ return '<div class="meter"><i style="width:'+pct+'%"></i></div>'; }
+
+  function drawChart(log){
+    var W=680,H=220,padL=42,padR=16,padT=16,padB=28;
+    var prices = log.map(function(r){return r.price;});
+    var flows = log.map(function(r){return r.flow;});
+    var pMin=Math.min.apply(null,prices), pMax=Math.max.apply(null,prices);
+    var fMax=Math.max.apply(null,flows.map(Math.abs));
+    var n=log.length;
+    var stepX=(W-padL-padR)/(n-1);
+    function xAt(i){return padL+i*stepX;}
+    function yPrice(v){ var t=(v-pMin)/((pMax-pMin)||1); return padT + (1-t)*(H-padT-padB); }
+    var midY = H-padB;
+    var barW = stepX*0.42;
+
+    var bars = log.map(function(r,i){
+      var x=xAt(i)-barW/2;
+      var h=(Math.abs(r.flow)/((fMax)||1))*((H-padT-padB)*0.34);
+      var y = r.flow>=0 ? midY-h : midY;
+      var fill = r.flow>=0 ? 'var(--accent)' : 'var(--cool)';
+      return '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+Math.max(h,1)+'" fill="'+fill+'" opacity="0.85" rx="1"/>';
+    }).join('');
+
+    var linePts = log.map(function(r,i){ return xAt(i)+','+yPrice(r.price); }).join(' ');
+
+    var xlabels = log.map(function(r,i){
+      if(i%2!==0 && i!==n-1) return '';
+      return '<text x="'+xAt(i)+'" y="'+(H-8)+'" font-size="9" fill="var(--text-faint)" text-anchor="middle" font-family="var(--mono)">'+r.d+'</text>';
+    }).join('');
+
+    var yLabels = '<text x="6" y="'+(yPrice(pMax)+4)+'" font-size="9" fill="var(--text-faint)" font-family="var(--mono)">'+pMax+'</text>'+
+                  '<text x="6" y="'+(yPrice(pMin)+4)+'" font-size="9" fill="var(--text-faint)" font-family="var(--mono)">'+pMin+'</text>';
+
+    return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">'+
+      '<line x1="'+padL+'" y1="'+midY+'" x2="'+(W-padR)+'" y2="'+midY+'" stroke="var(--border)" stroke-width="1"/>'+
+      bars+
+      '<polyline points="'+linePts+'" fill="none" stroke="var(--text)" stroke-width="2"/>'+
+      xlabels + yLabels +
+    '</svg>';
+  }
+
+  function renderDetail(ticker){
+    var s = STOCKS.filter(function(x){return x.t===ticker;})[0] || STOCKS[0];
+    var c = confluenceLabel(s);
+    document.getElementById('detail-sub').textContent = s.name+' · '+s.sector;
+
+    var caNotice = s.corp ? '<div class="ca-notice">⚠ '+s.corp+' — hari ini dikecualikan dari perhitungan skor.</div>' : '';
+
+    document.getElementById('detail-body').innerHTML =
+      '<div class="detail-head">'+
+        '<div class="id"><div class="ticker">'+s.t+'</div><div class="name">'+s.name+'</div><div class="confluence-pill '+c.cls+'" style="margin-top:10px;">'+c.txt+'</div></div>'+
+        '<div class="bignum"><div class="lbl">SMFI SCORE</div><div class="val">'+s.smfi+'</div></div>'+
+        '<div class="bignum"><div class="lbl">DIVERGENCE DELTA</div><div class="val">'+(s.div>0?'+':'')+s.div+'</div></div>'+
+        '<div class="bignum"><div class="lbl">TREN</div><div class="val" style="font-size:13px; font-weight:600; color:var(--text-soft); max-width:180px; line-height:1.4;">'+s.trend+'</div></div>'+
+      '</div>'+
+      caNotice+
+      '<section><div class="section-title"><h2>Rincian komponen SMFI</h2></div>'+
+        '<div class="component-grid">'+
+          '<div class="component"><div class="lbl">Intensitas arus<b>'+s.comp.flow+'</b></div>'+meter(s.comp.flow)+'</div>'+
+          '<div class="component"><div class="lbl">Dominasi institusi<b>'+s.comp.inst+'</b></div>'+meter(s.comp.inst)+'</div>'+
+          '<div class="component"><div class="lbl">Turnover relatif<b>'+s.comp.turn+'</b></div>'+meter(s.comp.turn)+'</div>'+
+          '<div class="component"><div class="lbl">Sinyal insider<b>'+s.comp.ins+'</b></div>'+meter(s.comp.ins)+'</div>'+
+        '</div>'+
+      '</section>'+
+      '<section><div class="section-title"><h2>Arus vs Harga — 15 Hari Bursa</h2></div>'+
+        '<div class="chart-card">'+drawChart(s.log)+
+          '<div class="legend"><span><i style="background:var(--accent)"></i>Net foreign buy</span><span><i style="background:var(--cool)"></i>Net foreign sell</span><span><i style="background:var(--text)"></i>Harga penutupan</span></div>'+
+        '</div>'+
+      '</section>'+
+      '<section><div class="section-title"><h2>Log Transaksi</h2></div>'+
+        '<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Net Foreign Buy (Rp M)</th><th>Harga Close</th><th>Dominasi Institusi</th></tr></thead><tbody>'+
+        s.log.slice().reverse().map(function(r){
+          return '<tr><td>'+r.d+'</td><td class="num" style="color:'+(r.flow>=0?'var(--accent-strong)':'var(--cool)')+'">'+(r.flow>=0?'+':'')+r.flow.toFixed(1)+'</td><td class="num">'+r.price.toLocaleString('id-ID')+'</td><td class="num">'+s.comp.inst+'%</td></tr>';
+        }).join('') +
+        '</tbody></table></div>'+
+      '</section>';
+  }
+
+  function renderSectors(sel){
+    sel = sel || 'Basic Materials';
+    var grid = document.getElementById('sector-grid');
+    grid.innerHTML = SECTORS.map(function(sc){
+      return '<button class="sectile'+(sc.n===sel?' sel':'')+'" onclick="ARUS.selectSector(\''+sc.n+'\')">'+
+        '<div class="sname">'+sc.n+'</div>'+
+        '<div class="slabel l-'+sc.label+'">'+LABEL_TXT[sc.label]+'</div>'+
+        '<div class="sbreadth">breadth '+sc.breadth+'%</div>'+
+      '</button>';
+    }).join('');
+    document.getElementById('drill-title').textContent = 'Top 5 — '+sel;
+    var pool = STOCKS.filter(function(s){return s.sector===sel;});
+    if(pool.length===0) pool = STOCKS.slice(0,3);
+    document.getElementById('drill-list').innerHTML = pool.map(function(s){
+      return '<div class="drill-row"><span class="t">'+s.t+'</span><span>'+s.name+'</span><span class="s">'+s.smfi+'</span></div>';
+    }).join('') || '<div class="drill-row"><span>Belum ada data untuk sektor ini di sampel mockup.</span></div>';
+  }
+
+  function renderWatchlist(){
+    var saved;
+    try{ saved = JSON.parse(localStorage.getItem('arus_watchlist')||'null'); }catch(e){ saved = null; }
+    if(!saved) saved = ['ANTM','PGAS'];
+    var box = document.getElementById('watch-list');
+    if(saved.length===0){ box.innerHTML = '<div class="watch-empty">Belum ada saham disimpan. Klik ☆ di halaman detail buat nambahin.</div>'; return; }
+    box.innerHTML = saved.map(function(t){
+      var s = STOCKS.filter(function(x){return x.t===t;})[0];
+      if(!s) return '';
+      return '<div class="watch-row"><span class="t">'+s.t+'</span><span class="n">'+s.name+'</span><span class="s" style="color:var(--accent-strong)">'+s.smfi+'</span><button class="rmv" onclick="ARUS.unwatch(\''+s.t+'\')">Hapus</button></div>';
+    }).join('');
+  }
+
+  function renderAsk(){
+    var pool = [STOCKS[1], STOCKS[0], STOCKS[2]];
+    document.getElementById('ask-results').innerHTML = pool.map(function(s){
+      var c = confluenceLabel(s);
+      return '<button class="stockcard" onclick="ARUS.openDetail(\''+s.t+'\')">'+
+        '<div class="row1"><div><div class="ticker">'+s.t+'</div><div class="name">'+s.name+'</div></div><span class="sector-pill">'+s.sector+'</span></div>'+
+        '<div class="scorepair"><div class="item"><div class="lbl">SMFI</div><div class="val">'+s.smfi+'</div></div><div class="item"><div class="lbl">DIVERGENCE</div><div class="val">'+(s.div>0?'+':'')+s.div+'</div></div></div>'+
+        '<div class="confluence-pill '+c.cls+'">'+c.txt+'</div>'+
+        '<div class="reason">'+s.reason+'</div>'+
+      '</button>';
+    }).join('');
+  }
+
+  function showView(name){
+    document.querySelectorAll('.view').forEach(function(v){ v.hidden = true; });
+    document.getElementById('view-'+name).hidden = false;
+    document.querySelectorAll('.navbtn').forEach(function(b){ b.classList.toggle('active', b.dataset.view===name); });
+  }
+
+  window.ARUS = {
+    openDetail: function(t){ renderDetail(t); showView('detail'); },
+    selectSector: function(n){ renderSectors(n); },
+    unwatch: function(t){
+      try{
+        var saved = JSON.parse(localStorage.getItem('arus_watchlist')||'null') || ['ANTM','PGAS'];
+        saved = saved.filter(function(x){return x!==t;});
+        localStorage.setItem('arus_watchlist', JSON.stringify(saved));
+      }catch(e){}
+      renderWatchlist();
+    }
+  };
+
+  document.querySelectorAll('.navbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){ showView(btn.dataset.view); });
+  });
+
+  document.querySelectorAll('.ask-chip').forEach(function(chip){
+    chip.addEventListener('click', function(){ document.getElementById('ask-input').value = chip.dataset.q; renderAsk(); });
+  });
+  document.getElementById('ask-btn').addEventListener('click', renderAsk);
+
+  renderShortlist();
+  renderDetail('ANTM');
+  renderSectors();
+  renderWatchlist();
+  renderAsk();
+})();
+</script>
