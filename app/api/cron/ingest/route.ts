@@ -110,35 +110,59 @@ export async function POST(req: NextRequest) {
       }));
     } else {
       // Universe: saham anggota LQ45, ditarik lewat screener — bukan hardcode.
+      // limit=150 (bukan 60) — dibuktikan live 17 Sep 2026 kalau LQ45 itu
+      // kriteria LIKUIDITAS, bukan market cap murni: AKRA/BBTN/DEWA beneran
+      // LQ45 (field `indices` Sectors sendiri) tapi market_cap_rank mereka
+      // 75/115/119 — di luar top-60 lama, jadi nggak pernah ke-screen sama
+      // sekali. 150 ngasih margin aman di atas rank terjauh yang udah
+      // dikonfirmasi. Diurutkan ulang by symbol (bukan market-cap dari API,
+      // yang bisa geser antar panggilan) biar slicing per-batch deterministik
+      // — sama seperti jalur cache.
       const universeRes = await screenCompanies({
         where: "sub_sector IS NOT NULL",
         orderBy: "-market_cap",
-        limit: 60,
+        limit: 150,
       });
       apiCalls += 1;
-      candidates = universeRes.results.map((c) => ({
-        symbol: c.symbol.replace(/\.JK$/i, ""),
-        needsMembershipCheck: true,
-      }));
+      candidates = universeRes.results
+        .map((c) => ({
+          symbol: c.symbol.replace(/\.JK$/i, ""),
+          needsMembershipCheck: true,
+        }))
+        .sort((a, b) => a.symbol.localeCompare(b.symbol));
     }
 
     // Vercel Hobby plan mengeksekusi function paling lama 60 detik (plafon
     // keras, terbukti langsung dari FUNCTION_INVOCATION_TIMEOUT di produksi —
     // menaikkan maxDuration lagi nggak akan menolong). Daripada memaksa
-    // seluruh ~30 ticker LQ45 masuk satu invocation dan berisiko timeout
-    // (gagal total, nol data baru), tiap invocation cuma proses satu batch.
-    // Cron jalan 3x/minggu (vercel.json) — index batch mengikuti hari, jadi
-    // Senin/Rabu/Jumat masing-masing nutup sepertiga universe, dan satu
-    // minggu penuh selalu nyakup semua ticker. ?batch=N override manual buat
-    // testing. Ini trade-off sadar: skor derived_scores_daily di satu hari
-    // cuma dipersentil-kan atas ticker di batch hari itu (bukan ke-30
-    // sekaligus) — lebih sempit dari desain awal PRD, tapi cron yang PASTI
-    // selesai lebih penting buat bukti otonom daripada breadth maksimal yang
-    // sering gagal total.
+    // seluruh universe masuk satu invocation dan berisiko timeout (gagal
+    // total, nol data baru), tiap invocation cuma proses satu batch.
+    //
+    // Ukuran batch SENGAJA dipisah dua jalur:
+    // - Cache (steady-state, ~30-45 ticker): dibagi rata jadi 3, disinkronkan
+    //   ke jadwal cron 3x/minggu (vercel.json) lewat dayOfWeekBatchIndex() —
+    //   Senin/Rabu/Jumat masing-masing nutup sepertiga, satu minggu penuh
+    //   selalu nyakup semua ticker.
+    // - Discover/rediscover (candidates.length sampai 150, jarang jalan —
+    //   cuma bootstrap atau ?rediscover=1 manual): PAKAI ukuran tetap kecil
+    //   (DISCOVER_BATCH_SIZE), BUKAN dibagi 3. Kalau ikut dibagi 3 kayak
+    //   cache, 150 kandidat jadi 50/invocation — cek keanggotaan 50 ticker
+    //   (50 kredit + throttle) gampang lewat 60 detik lagi, persis bug yang
+    //   baru diperbaiki. Konsekuensinya: rediscover butuh beberapa
+    //   ?rediscover=1&batch=N (0, 1, 2, ...) buat nyakup semua kandidat,
+    //   bukan cuma 3 kali.
+    //
+    // ?batch=N override manual buat testing di kedua jalur. Trade-off sadar
+    // di jalur cache: skor derived_scores_daily di satu hari cuma
+    // dipersentil-kan atas ticker di batch hari itu — lebih sempit dari
+    // desain awal PRD, tapi cron yang PASTI selesai lebih penting buat bukti
+    // otonom daripada breadth maksimal yang sering gagal total.
+    const DISCOVER_BATCH_SIZE = 20;
     const totalCandidates = candidates.length;
-    const BATCH_SIZE = Math.max(1, Math.ceil(totalCandidates / 3));
+    const BATCH_SIZE = useCache ? Math.max(1, Math.ceil(totalCandidates / 3)) : DISCOVER_BATCH_SIZE;
     const batchParam = req.nextUrl.searchParams.get("batch");
-    const batchIndex = batchParam !== null ? Number(batchParam) : dayOfWeekBatchIndex();
+    const parsedBatch = batchParam !== null ? Number(batchParam) : NaN;
+    const batchIndex = Number.isInteger(parsedBatch) && parsedBatch >= 0 ? parsedBatch : dayOfWeekBatchIndex();
     candidates = candidates.slice(batchIndex * BATCH_SIZE, (batchIndex + 1) * BATCH_SIZE);
 
     // Registry broker — cache lama, cukup refresh tiap ingest (murah, 1 kredit)
